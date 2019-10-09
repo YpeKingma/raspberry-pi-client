@@ -106,7 +106,7 @@ else:
         res = p2 + mpz_urandomb(rndstate, bitSize - 1)
         assert res.bit_length() == bitSize
         return res
-                                                                               
+
 
 if gmpy2Available:
     from gmpy2 import is_prime
@@ -126,11 +126,11 @@ else:
     769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857,
     859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947,
     953, 967, 971, 977, 983, 991, 997]
-    
+
     _smallPrimesDict = {}
     for p in _smallPrimesList:
         _smallPrimesDict[p] = 1
-    
+
     def isProbablePrime(n, trials=8, rnd=random):
         """ Return value indicates that n is probably a prime.
         The probability that True is returned for a non prime n is less than 4**(-trials).
@@ -149,7 +149,7 @@ else:
         while d % 2 == 0:
             d >>= 1
             r += 1
-    
+
         def checkWitness(a): # for n composite
             x = pow(a, d, n)
             if x == 1 or x == nMinus1:
@@ -159,7 +159,7 @@ else:
                 if x == nMinus1:
                     return False # continue witness loop
             return True
-    
+
         for _ in range(trials): # witness loop
             if checkWitness(rnd.randrange(2, nMinus1)):
                 return False
@@ -208,7 +208,7 @@ if not gmpy2Available:
             self.g = g
             r = secureRandom.randrange(5, self.n) # avoid r <= 4
             self.rpown = pow(r, n, self.nSquared)
-    
+
         def encrypt(self, m):
             """ Encrypt plaintext m using Scheme 1. """
             assert m >= 0 and m < self.n
@@ -221,7 +221,7 @@ else:
             self.g = mpz(g)
             r = mpz(secureRandom.randrange(5, self.n)) # avoid r <= 4
             self.rpown = powmod(r, n, self.nSquared)
-    
+
         def encrypt(self, m):
             """ Encrypt plaintext m using Scheme 1. """
             assert m >= 0 and m < self.n
@@ -241,7 +241,7 @@ if not gmpy2Available:
             # self.mu = inverseLgl = pow(lgl, phi(n) - 1, n)
             self.mu = pow(lgl, phiN - 1, n) # precomputed constant, see Paillier 1999, top of p. 234.
             assert (self.mu * lgl) % n == 1
-    
+
         def decrypt(self, c):
             """ Decrypt an encrypted number, using Scheme 1. """
             assert c >= 0 and c < self.nSquared
@@ -270,9 +270,8 @@ else:
             lgl = L(gl, n)
             self.mu = powmod(lgl, phiN - 1, n) # precomputed constant, see Paillier 1999, top of p. 234.
             assert (self.mu * lgl) % n == 1
-    
+
         def decrypt(self, c):
-            """ Decrypt an encrypted number, using Scheme 1. """
             assert c >= 0 and c < self.nSquared
             cl = powmod(c, self.lmbda, self.nSquared)
             lcl = L(cl, self.n)
@@ -282,7 +281,7 @@ else:
 def generateKeysPaillierScheme1(nBitSize):
     """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size. """
     assert nBitSize >= 10 # allow p and q (for n = p*q) to be of different bit length
-    assert nBitSize <= 1600 # Tested for max 1200. Depends on available processing speed.
+    assert nBitSize <= 2000 # Tested for max 2000. Depends on available processing speed.
 
     # Choose a random prime number p2p1 of at most nBitSize//2, and q2p1 of the remaining bitsize for nBitSize.
     # Here use (p2p1, p) for the Germain prime pair (p * 2 + 1, p), and similarly for q.
@@ -392,7 +391,7 @@ if __name__ == "__main__":
     testSmallSG()
     testNextGermainMendezes()
 
-    nBitSize = 600                          
+    nBitSize = 600
     pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
     print("generated keys, nBitSize", nBitSize)
     print("n", pub.n)
