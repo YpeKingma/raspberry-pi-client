@@ -66,6 +66,20 @@ try:
 except ImportError: # before python 3.6
     secureRandom = random.SystemRandom()
 
+
+try:
+    import gmpy2
+    from gmpy2 import mpz, random_state, mpz_random, mpz_urandomb, powmod
+    gmpy2Available = True
+    gmpy_random_state = random_state(secureRandom.randrange(2 ** 63))
+except ImportError:
+    gmpy2Available = False
+    def mpz(n):
+        return n
+    stop
+
+# gmpy2Available = False
+
 try:
     from math import gcd
 except ImportError: # before python 3.5
@@ -80,63 +94,76 @@ except ImportError: # before python 2.6
             a, b = b, a%b
         return a
 
-def randomIntBitSize(bitSize, rnd=secureRandom):
-    p2 = pow(2, bitSize - 1)
-    res = p2 + rnd.randrange(p2)
-    assert res.bit_length() == bitSize
-    return res
+if not gmpy2Available:
+    def randomIntBitSize(bitSize, rnd=secureRandom):
+        p2 = pow(2, bitSize - 1)
+        res = p2 + rnd.randrange(p2)
+        assert res.bit_length() == bitSize
+        return res
+else:
+    def randomIntBitSize(bitSize, rndstate=gmpy_random_state):
+        p2 = mpz(2) ** (bitSize - 1)
+        res = p2 + mpz_urandomb(rndstate, bitSize - 1)
+        assert res.bit_length() == bitSize
+        return res
+                                                                               
 
-_smallPrimesList =  [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53,
-59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127,
-131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193,
-197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269,
-271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349,
-353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431,
-433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503,
-509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599,
-601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673,
-677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761,
-769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857,
-859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947,
-953, 967, 971, 977, 983, 991, 997]
-
-_smallPrimesDict = {}
-for p in _smallPrimesList:
-    _smallPrimesDict[p] = 1
-
-def isProbablePrime(n, trials=8, rnd=random):
-    """ Return value indicates that n is probably a prime.
-    The probability that True is returned for a non prime n is less than 4**(-trials).
-    See also https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test .
-    """
-    if n < 2:
-        return False
-    if n in _smallPrimesDict:
-        return True
+if gmpy2Available:
+    from gmpy2 import is_prime
+    def isProbablePrime(n, trials=25):
+        return is_prime(n, trials)
+else:
+    _smallPrimesList =  [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53,
+    59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127,
+    131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193,
+    197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269,
+    271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349,
+    353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431,
+    433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503,
+    509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599,
+    601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673,
+    677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761,
+    769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857,
+    859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947,
+    953, 967, 971, 977, 983, 991, 997]
+    
+    _smallPrimesDict = {}
     for p in _smallPrimesList:
-        if n % p == 0:
+        _smallPrimesDict[p] = 1
+    
+    def isProbablePrime(n, trials=8, rnd=random):
+        """ Return value indicates that n is probably a prime.
+        The probability that True is returned for a non prime n is less than 4**(-trials).
+        See also https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test .
+        """
+        if n < 2:
             return False
-    nMinus1 = n - 1
-    r = 0
-    d = nMinus1
-    while d % 2 == 0:
-        d >>= 1
-        r += 1
-
-    def checkWitness(a): # for n composite
-        x = pow(a, d, n)
-        if x == 1 or x == nMinus1:
-            return False # continue witness loop
-        for _ in range(r - 1):
-            x = pow(x, 2, n)
-            if x == nMinus1:
+        if n in _smallPrimesDict:
+            return True
+        for p in _smallPrimesList:
+            if n % p == 0:
+                return False
+        nMinus1 = n - 1
+        r = 0
+        d = nMinus1
+        while d % 2 == 0:
+            d >>= 1
+            r += 1
+    
+        def checkWitness(a): # for n composite
+            x = pow(a, d, n)
+            if x == 1 or x == nMinus1:
                 return False # continue witness loop
+            for _ in range(r - 1):
+                x = pow(x, 2, n)
+                if x == nMinus1:
+                    return False # continue witness loop
+            return True
+    
+        for _ in range(trials): # witness loop
+            if checkWitness(rnd.randrange(2, nMinus1)):
+                return False
         return True
-
-    for _ in range(trials): # witness loop
-        if checkWitness(rnd.randrange(2, nMinus1)):
-            return False
-    return True
 
 
 def nextGermainMendezes(q):
@@ -172,51 +199,85 @@ def L(u, n): # See Paillier, p. 227, and https://en.wikipedia.org/wiki/Paillier_
     # TBD: Paillier, p. 233, Decryption, recommends to speed this up by precomputing
     # n^-1 mod 2^bitSize(n) # or abs(n) ? Paillier writes |n| here.
 
-class PaillierScheme1PublicKey(object): # Paillier 1999, p. 229
-    def __init__(self, n, nSquared, g):
-        self.n = n
-        self.nSquared = nSquared
-        self.g = g
-        r = secureRandom.randrange(5, self.n) # avoid r <= 4
-        self.rpown = pow(r, n, self.nSquared)
 
-    def encrypt(self, m):
-        """ Encrypt plaintext m using Scheme 1. """
-        assert m >= 0 and m < self.n
-        return (pow(self.g, m, self.nSquared) * self.rpown) % self.nSquared
+if not gmpy2Available:
+    class PaillierScheme1PublicKey(object): # Paillier 1999, p. 229
+        def __init__(self, n, nSquared, g):
+            self.n = n
+            self.nSquared = nSquared
+            self.g = g
+            r = secureRandom.randrange(5, self.n) # avoid r <= 4
+            self.rpown = pow(r, n, self.nSquared)
+    
+        def encrypt(self, m):
+            """ Encrypt plaintext m using Scheme 1. """
+            assert m >= 0 and m < self.n
+            return (pow(self.g, m, self.nSquared) * self.rpown) % self.nSquared
+else:
+    class PaillierScheme1PublicKey(object): # Paillier 1999, p. 229
+        def __init__(self, n, nSquared, g):
+            self.n = mpz(n)
+            self.nSquared = mpz(nSquared)
+            self.g = mpz(g)
+            r = mpz(secureRandom.randrange(5, self.n)) # avoid r <= 4
+            self.rpown = powmod(r, n, self.nSquared)
+    
+        def encrypt(self, m):
+            """ Encrypt plaintext m using Scheme 1. """
+            assert m >= 0 and m < self.n
+            return (powmod(self.g, m, self.nSquared) * self.rpown) % self.nSquared
 
-class PaillierScheme1PrivateKey(object):
-    def __init__(self, n, nSquared, g, lmbda, phiN):
-        self.n = n
-        self.nSquared = nSquared
-        self.lmbda = lmbda
-        gl = pow(g, lmbda, self.nSquared)
-        lgl = L(gl, n)
-        # Inverse modulo not yet available in python, i.e. pow(, -1, n).
-        # Since pow(i, phi(m), m) == 1, for i != 0
-        # (see https://www.algorithmist.com/index.php/Modular_inverse )
-        # self.mu = inverseLgl = pow(lgl, phi(n) - 1, n)
-        self.mu = pow(lgl, phiN - 1, n) # precomputed constant, see Paillier 1999, top of p. 234.
-        assert (self.mu * lgl) % n == 1
+if not gmpy2Available:
+    class PaillierScheme1PrivateKey(object):
+        def __init__(self, n, nSquared, g, lmbda, phiN):
+            self.n = n
+            self.nSquared = nSquared
+            self.lmbda = lmbda
+            gl = pow(g, lmbda, self.nSquared)
+            lgl = L(gl, n)
+            # Inverse modulo not yet available in python, i.e. pow(, -1, n).
+            # Since pow(i, phi(m), m) == 1, for i != 0
+            # (see https://www.algorithmist.com/index.php/Modular_inverse )
+            # self.mu = inverseLgl = pow(lgl, phi(n) - 1, n)
+            self.mu = pow(lgl, phiN - 1, n) # precomputed constant, see Paillier 1999, top of p. 234.
+            assert (self.mu * lgl) % n == 1
+    
+        def decrypt(self, c):
+            """ Decrypt an encrypted number, using Scheme 1. """
+            assert c >= 0 and c < self.nSquared
+            cl = pow(c, self.lmbda, self.nSquared)
+            lcl = L(cl, self.n)
+            return (lcl * self.mu) % self.n
+            # TBD: Paillier 1999, p. 234, Decryption using Chinese-remaindering
+            # recommends to speed decryption up by splitting up over p and q, i.e. p2p1 and q2p1
+            # mp = (L(c^(p2p1-1) mod p2p1^2, p2p1) * hp) mod p2p1
+            # mq = (L(c^(q2p1-1) mod q2p1^2, q2p1) * hq) mod q2p1
+            # m = CRT(mp, mq) mod (p2p1*q2p1)
+            # with precomputations:
+            # hp = (L(g^(p2p1-1) mod p2p1^2)^-1 mod p2p1
+            # hq = (L(g^(q2p1-1) mod q2p1^2)^-1 mod q2p1
+            #
+            # CRT(mp, mq) mod (p2p1 * q2p1) is defined in
+            # https://en.wikipedia.org/wiki/Chinese_remainder_theorem#Computation
+            # the CRT requires the extended Euclidian algorithm.
+else:
+    class PaillierScheme1PrivateKey(object):
+        def __init__(self, n, nSquared, g, lmbda, phiN):
+            self.n = mpz(n)
+            self.nSquared = mpz(nSquared)
+            self.lmbda = mpz(lmbda)
+            gl = powmod(g, lmbda, self.nSquared)
+            lgl = L(gl, n)
+            self.mu = powmod(lgl, phiN - 1, n) # precomputed constant, see Paillier 1999, top of p. 234.
+            assert (self.mu * lgl) % n == 1
+    
+        def decrypt(self, c):
+            """ Decrypt an encrypted number, using Scheme 1. """
+            assert c >= 0 and c < self.nSquared
+            cl = powmod(c, self.lmbda, self.nSquared)
+            lcl = L(cl, self.n)
+            return (lcl * self.mu) % self.n
 
-    def decrypt(self, c):
-        """ Decrypt an encrypted number, using Scheme 1. """
-        assert c >= 0 and c < self.nSquared
-        cl = pow(c, self.lmbda, self.nSquared)
-        lcl = L(cl, self.n)
-        return (lcl * self.mu) % self.n
-        # TBD: Paillier 1999, p. 234, Decryption using Chinese-remaindering
-        # recommends to speed decryption up by splitting up over p and q, i.e. p2p1 and q2p1
-        # mp = (L(c^(p2p1-1) mod p2p1^2, p2p1) * hp) mod p2p1
-        # mq = (L(c^(q2p1-1) mod q2p1^2, q2p1) * hq) mod q2p1
-        # m = CRT(mp, mq) mod (p2p1*q2p1)
-        # with precomputations:
-        # hp = (L(g^(p2p1-1) mod p2p1^2)^-1 mod p2p1
-        # hq = (L(g^(q2p1-1) mod q2p1^2)^-1 mod q2p1
-        #
-        # CRT(mp, mq) mod (p2p1 * q2p1) is defined in
-        # https://en.wikipedia.org/wiki/Chinese_remainder_theorem#Computation
-        # the CRT requires the extended Euclidian algorithm.
 
 def generateKeysPaillierScheme1(nBitSize):
     """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size. """
@@ -331,9 +392,10 @@ if __name__ == "__main__":
     testSmallSG()
     testNextGermainMendezes()
 
-    nBitSize = 600
+    nBitSize = 600                          
     pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
     print("generated keys, nBitSize", nBitSize)
+    print("n", pub.n)
     mes = 301
     enc = pub.encrypt(mes)
     dec = prv.decrypt(enc)
