@@ -267,7 +267,15 @@ class PaillierScheme1PrivateKey(object):
         # https://en.wikipedia.org/wiki/Chinese_remainder_theorem#Computation
         # the CRT requires the extended Euclidian algorithm.
 
-
+"""
+@inproceedings{rivest1999arestrong,
+  title={AreStrong'Primes Needed for RSA?},
+  author={Rivest, Ronald L and Silverman, Robert D},
+  booktitle={IN THE 1997 RSA LABORATORIES SEMINAR SERIES, SEMINARS PROCEEDINGS},
+  year={1999}
+}
+Referred to as Rivest 1999.
+"""
 
 def generateKeysPaillierScheme1(nBitSize):
     """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size. """
@@ -284,6 +292,10 @@ def generateKeysPaillierScheme1(nBitSize):
 
     # See Koblitz chapter IV.2 RSA on choosing p2p1 and q2p1.
     # p2p1 and q2p1 should a.o. have somewhat different bit lengths.
+    
+    # See also Rivest 1999: Germain primes do not hurt, but do not bring better protection
+    # than large enough primes.
+    
     pqBitSize = nBitSize - 2
     nMin = randomIntBitSize(nBitSize) # to start looking for q after generating p
     while True:
