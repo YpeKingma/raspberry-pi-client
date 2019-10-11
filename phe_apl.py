@@ -90,6 +90,18 @@ try:
     def isProbablePrime(n, trials=25):
         return is_prime(n, trials)
 
+    from gmpy2 import next_prime
+    def nextGermain(q):
+        """ Generate a Sophie Germain prime tuple (p,q) with p = 2 * q + 1 and p and q both probable prime,
+        The return value is a tuple of such probable primes (p, q) with q bigger than the given q.
+        See https://en.wikipedia.org/wiki/Sophie_Germain_prime
+        """
+        while True:
+            q = next_prime(q)
+            p = 2 * q + 1
+            if is_prime(p):
+                return (p, q)
+
 except ImportError:
     gmpy2Available = False
 
@@ -171,25 +183,26 @@ except ImportError:
                 return False
         return True
 
+    def nextGermain(q):
+        """ Generate a Sophie Germain prime tuple (p,q) with p = 2 * q + 1 and p and q both probable prime,
+        using only q mod 12 = 5 as recommended by Mendezes.
+        The return value is a tuple of such probable primes (p, q) with q bigger than the given q.
+        See https://en.wikipedia.org/wiki/Sophie_Germain_prime
+        See http://www.hjp.at/doc/rfc/rfc4419.html for the reference to Mendezes.
+        """
+        q += 1
+        rem12 = q % 12
+        d = (5 - rem12) % 12
+        assert d >= 0
+        q += d
+        assert q % 12 == 5
+        while True:
+            if isProbablePrime(q):
+                p = 2 * q + 1
+                if isProbablePrime(p):
+                    return (p, q)
+            q += 12
 
-def nextGermainMendezes(q):
-    """ Generate a Sophie Germain prime tuple (p,q) with p = 2 * q + 1 and p and q both probable prime,
-    using only q mod 12 = 5 as recommended by Mendezes.
-    The return value is a tuple of such probable primes (p, q) with q bigger than or equal to the given q.
-    See https://en.wikipedia.org/wiki/Sophie_Germain_prime
-    See http://www.hjp.at/doc/rfc/rfc4419.html for the reference to Mendezes.
-    """
-    rem12 = q % 12
-    d = (5 - rem12) % 12
-    assert d >= 0
-    q += d
-    assert q % 12 == 5
-    while True:
-        if isProbablePrime(q):
-            p = 2 * q + 1
-            if isProbablePrime(p):
-                return (p, q)
-        q += 12
 
 
 def germainPrime(q):
@@ -278,13 +291,13 @@ def generateKeysPaillierScheme1(nBitSize):
         # minus 1: less than half: try and have different bit lengths
         # minus random.randrange(2), i.e. 0 or 1: leave bit size difference somewhat uncertain.
         while True:
-            (p2p1, p) = nextGermainMendezes(randomIntBitSize(bitSizeP))
+            (p2p1, p) = nextGermain(randomIntBitSize(bitSizeP))
             bitSizeQ = pqBitSize - p.bit_length()
             if bitSizeQ > bitSizeP: # There is a small probability of equality here.
                 break
 
         qMin = nMin // 2 // p2p1
-        (q2p1, q) = nextGermainMendezes(qMin)
+        (q2p1, q) = nextGermain(qMin)
         n = p2p1 * q2p1
         if n.bit_length() == nBitSize:
             break
@@ -334,16 +347,15 @@ if __name__ == "__main__":
             assert germainPrime(q)
             prev += 1
 
-    def testNextGermainMendezes():
+    def testNextGermain():
         # for pow2 in [160,260,360,460,560,660]:
         for pow2 in [160,260]:
             print("pow2", pow2)
             q = pow(2, pow2)
             num = 2
             for _ in range(num):
-                (p, q) = nextGermainMendezes(q)
+                (p, q) = nextGermain(q)
                 print("q", q)
-                q += 1
 
     def testHomomorphic1AddProdPow(m1, m2, pub, prv):
         enc1 = pub.encrypt(m1 % pub.n)
@@ -367,9 +379,9 @@ if __name__ == "__main__":
 
     testProbablePrime()
     testSmallSG()
-    testNextGermainMendezes()
+    testNextGermain()
 
-    nBitSize = 600
+    nBitSize = 800
     pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
     print("generated keys, nBitSize", nBitSize)
     print("n", pub.n)
