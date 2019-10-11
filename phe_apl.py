@@ -294,8 +294,8 @@ def generateKeysPaillierScheme1(nBitSize):
     nSquared = n ** 2
 
     # Paillier uses g as an element of Z*nSquared (see Paillier, p. 225,  under 3).
-    # randomly select a base g from B by verifying eq (4)
-    # for g, check Paillier eq. (4) on p. 229: gcd(L(g^lmbda mod n^2, n), n) = 1
+    # randomly select a base g from B by verifying eq (4) on p. 229:
+    # gcd(L(g^lmbda mod n^2, n), n) = 1
     while True:
         g = mpz(secureRandom.randrange(4, nSquared))
         # TBD: Improve this following Paillier 1999, p. 233 under Encryption:
