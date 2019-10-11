@@ -291,7 +291,7 @@ def generateKeysPaillierScheme1(nBitSize):
 
     lmbda = 2 * p * q # lcm(p2p1 - 1, q2p1 - 1)
     phiN = (p2p1 - 1) * (q2p1 - 1)
-    nSquared = pow(n, 2)
+    nSquared = n ** 2
 
     # Paillier uses g as an element of Z*nSquared (see Paillier, p. 225,  under 3).
     # randomly select a base g from B by verifying eq (4)
