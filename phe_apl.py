@@ -302,9 +302,9 @@ def generateKeysPaillierScheme1(nBitSize):
     # "we will focus on moduli n = pq such that gcd(p − 1, q − 1) = 2, which yields φ = 2λ."
     # The Germain prime pairs here have this gcd: gcd(p2p1 - 1, q2p1 - 1)
 
-    # See Koblitz chapter IV.2 RSA on choosing p2p1 and q2p1.
-    # p2p1 and q2p1 should a.o. have somewhat different bit lengths.
-    # This is to avoid easy Fermat factorization, see https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
+    # See Koblitz chapter IV.2 RSA on choosing p2p1 and q2p1: differ by a few decimal digits,
+    # a weaker check is done below to avoid easy Fermat factorization,
+    # see https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
 
     # See also Rivest 1999: Germain primes do not hurt, but do not bring better protection
     # than large enough primes.
@@ -313,10 +313,9 @@ def generateKeysPaillierScheme1(nBitSize):
     pqBitSize = nBitSize - 2
     bitSizeP = pqBitSize//2
 
-    # Try and avoid classification by modulus n, by starting from a random value.
-    # See Svenda 2016, Chapter 4, Key source detection.
-
     while True:
+        # Try and avoid classification by modulus n, by starting from a random value for n.
+        # See Svenda 2016, Chapter 4, Key source detection.
         nMin = randomIntBitSize(nBitSize) # to start looking for q after generating p
         (p2p1, p) = nextGermain(randomIntBitSize(bitSizeP))
         qMin = nMin // 2 // p2p1
@@ -324,9 +323,10 @@ def generateKeysPaillierScheme1(nBitSize):
 
         # See https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
         # and https://crypto.stackexchange.com/questions/5262/rsa-and-prime-difference
+        # and https://crypto.stackexchange.com/questions/5698/ansi-x9-31-standards-for-generating-random-numbers
         # p2p1 and q2p1 should differ in their first 100 bits, and p and q in their first 99 bits.
-        assert q.bit_length() > 99
-        if (abs(p-q) >> 99) == 0: # guard against Fermat factorization
+        assert min (p.bit_length(), q.bit_length()) > 99
+        if (abs(p-q) >> 99) == 0: # guard against Fermat factorization, very unlikely for nBitSize > 250
             continue # retry
         n = p2p1 * q2p1 # Hopefully random enough, see Svenda 2016, ch. 4.
         if n.bit_length() == nBitSize:
@@ -340,9 +340,8 @@ def generateKeysPaillierScheme1(nBitSize):
     # randomly select a base g from B by verifying eq (4) on p. 229:
     # gcd(L(g^lmbda mod n^2, n), n) = 1
     while True:
+        # TBD: Paillier 1999, p. 233 under Encryption, use a small g for encryption efficiency.
         g = mpz(secureRandom.randrange(4, nSquared))
-        # TBD: Improve this following Paillier 1999, p. 233 under Encryption:
-        # use a small g for encryption efficiency.
         if gcd(L(powmod(g, lmbda, nSquared), n), n) == 1:
             break
 
