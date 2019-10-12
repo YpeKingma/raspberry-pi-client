@@ -291,7 +291,7 @@ Referred to as Svenda 2016.
 
 def generateKeysPaillierScheme1(nBitSize):
     """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size. """
-    assert nBitSize >= 10 # allow p and q (for n = p*q) to be of different bit length
+    assert nBitSize > 210 # allow p2p1 and q2p1 at least 105 bits, p and q at least 104, see Fermat factorization below.
     assert nBitSize <= 2000 # Tested for max 2000. Depends on available processing speed.
 
     # Choose a random prime number p2p1 of just less than nBitSize//2, and q2p1 of the remaining bitsize for nBitSize.
@@ -312,7 +312,6 @@ def generateKeysPaillierScheme1(nBitSize):
 
     pqBitSize = nBitSize - 2
     bitSizeP = pqBitSize//2
-    assert nBitSize > 210 # allow p2p1 and q2p1 at least 105 bits, p and q at least 104, see Fermat factorization below.
 
     # Try and avoid classification by modulus n, by starting from a random value.
     # See Svenda 2016, Chapter 4, Key source detection.
