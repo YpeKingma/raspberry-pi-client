@@ -311,23 +311,23 @@ def generateKeysPaillierScheme1(nBitSize):
     # Strong primes (with a large factor in p+1) are not considered here.
 
     pqBitSize = nBitSize - 2
+    bitSizeP = pqBitSize//2
+    assert nBitSize > 210 # allow p2p1 and q2p1 at least 105 bits, p and q at least 104, see Fermat factorization below.
 
     # Try and avoid classification by modulus n, by starting from a random value.
     # See Svenda 2016, Chapter 4, Key source detection.
     nMin = randomIntBitSize(nBitSize) # to start looking for q after generating p
 
     while True:
-        bitSizeP = pqBitSize//2 - 1 - secureRandom.randrange(2)
-        # minus 1: less than half: ensure different bit lengths
-        # minus random.randrange(2), i.e. 0 or 1: leave actual bit size difference somewhat uncertain.
-        while True:
-            (p2p1, p) = nextGermain(randomIntBitSize(bitSizeP))
-            bitSizeQ = pqBitSize - p.bit_length()
-            if bitSizeQ > bitSizeP: # There is a small probability of equality here.
-                break
-
+        (p2p1, p) = nextGermain(randomIntBitSize(bitSizeP))
         qMin = nMin // 2 // p2p1
         (q2p1, q) = nextGermain(qMin)
+
+        # See https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
+        # and https://crypto.stackexchange.com/questions/5262/rsa-and-prime-difference
+        # p2p1 and q2p1 should differ in their first 100 bits, and p and q in their first 99 bits.
+        if (abs(p-q) >> 99) == 0: # guard against Fermat factorization
+            continue # retry
         n = p2p1 * q2p1 # Hopefully random enough, see Svenda 2016, ch. 4.
         if n.bit_length() == nBitSize:
             break
@@ -411,7 +411,7 @@ if __name__ == "__main__":
     testSmallSG()
     testNextGermain()
 
-    nBitSize = 800
+    nBitSize = 900
     pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
     print("generated keys, nBitSize", nBitSize)
     print("n", pub.n)
