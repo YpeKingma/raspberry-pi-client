@@ -206,7 +206,9 @@ except ImportError:
 
 
 def germainPrime(q):
-    """ Check whether 2*q+1 and q are both probable primes. """
+    """ Check whether 2*q+1 and q are both probable primes.
+        When so, 2*q+1 is normally referred to as a safe prime.
+    """
     if isProbablePrime(q):
         p = 2 * q + 1
         if isProbablePrime(p):
@@ -275,6 +277,16 @@ class PaillierScheme1PrivateKey(object):
   year={1999}
 }
 Referred to as Rivest 1999.
+
+@inproceedings{vsvenda2016million,
+  title={The Million-Key Question—Investigating the Origins of $\{$RSA$\}$ Public Keys},
+  author={{\v{S}}venda, Petr and Nemec, Mat{\'u}{\v{s}} and Sekan, Peter and Kva{\v{s}}{\v{n}}ovsk{\`y}, Rudolf and Form{\'a}nek, David and Kom{\'a}rek, David and Maty{\'a}{\v{s}}, Vashek},
+  booktitle={25th $\{$USENIX$\}$ Security Symposium ($\{$USENIX$\}$ Security 16)},
+  pages={893--910},
+  year={2016}
+}
+Referred to as Svenda 2016.
+
 """
 
 def generateKeysPaillierScheme1(nBitSize):
@@ -282,7 +294,7 @@ def generateKeysPaillierScheme1(nBitSize):
     assert nBitSize >= 10 # allow p and q (for n = p*q) to be of different bit length
     assert nBitSize <= 2000 # Tested for max 2000. Depends on available processing speed.
 
-    # Choose a random prime number p2p1 of at most nBitSize//2, and q2p1 of the remaining bitsize for nBitSize.
+    # Choose a random prime number p2p1 of just less than nBitSize//2, and q2p1 of the remaining bitsize for nBitSize.
     # Here use (p2p1, p) for the Germain prime pair (p * 2 + 1, p), and similarly for q.
     # Therefore here n = p2p1 * q2p1.
 
@@ -292,16 +304,22 @@ def generateKeysPaillierScheme1(nBitSize):
 
     # See Koblitz chapter IV.2 RSA on choosing p2p1 and q2p1.
     # p2p1 and q2p1 should a.o. have somewhat different bit lengths.
-    
+    # This is to avoid easy Fermat factorization, see https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
+
     # See also Rivest 1999: Germain primes do not hurt, but do not bring better protection
     # than large enough primes.
-    
+    # Strong primes (with a large factor in p+1) are not considered here.
+
     pqBitSize = nBitSize - 2
+
+    # Try and avoid classification by modulus n, by starting from a random value.
+    # See Svenda 2016, Chapter 4, Key source detection.
     nMin = randomIntBitSize(nBitSize) # to start looking for q after generating p
+
     while True:
         bitSizeP = pqBitSize//2 - 1 - secureRandom.randrange(2)
-        # minus 1: less than half: try and have different bit lengths
-        # minus random.randrange(2), i.e. 0 or 1: leave bit size difference somewhat uncertain.
+        # minus 1: less than half: ensure different bit lengths
+        # minus random.randrange(2), i.e. 0 or 1: leave actual bit size difference somewhat uncertain.
         while True:
             (p2p1, p) = nextGermain(randomIntBitSize(bitSizeP))
             bitSizeQ = pqBitSize - p.bit_length()
@@ -310,7 +328,7 @@ def generateKeysPaillierScheme1(nBitSize):
 
         qMin = nMin // 2 // p2p1
         (q2p1, q) = nextGermain(qMin)
-        n = p2p1 * q2p1
+        n = p2p1 * q2p1 # Hopefully random enough, see Svenda 2016, ch. 4.
         if n.bit_length() == nBitSize:
             break
 
