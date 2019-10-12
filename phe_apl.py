@@ -325,6 +325,7 @@ def generateKeysPaillierScheme1(nBitSize):
         # See https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
         # and https://crypto.stackexchange.com/questions/5262/rsa-and-prime-difference
         # p2p1 and q2p1 should differ in their first 100 bits, and p and q in their first 99 bits.
+        assert q.bit_length() > 99
         if (abs(p-q) >> 99) == 0: # guard against Fermat factorization
             continue # retry
         n = p2p1 * q2p1 # Hopefully random enough, see Svenda 2016, ch. 4.
