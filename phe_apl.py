@@ -272,7 +272,7 @@ Referred to as Svenda 2016.
 def generateKeysPaillierScheme1(nBitSize):
     """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size. """
     assert nBitSize > 210 # Allow p and q at least 105 bits, p and q at least 104, see Fermat factorization below.
-    assert nBitSize <= 4096 # Depends on available processing speed.
+    assert nBitSize <= 8192 # Depends on available processing speed.
 
     # Choose a random prime number p of just less than nBitSize//2, and q of the remaining bitsize for nBitSize.
 
@@ -389,7 +389,8 @@ if __name__ == "__main__":
     testPaillierKeySize(512, mes)
     testPaillierKeySize(1024, mes)
     testPaillierKeySize(2048, mes)
-    testPaillierKeySize(4096, mes)
+    #testPaillierKeySize(4096, mes)
+    #testPaillierKeySize(8192, mes)
 
     pub, prv = generateKeysPaillierScheme1(nBitSize=2048)
     testHomomorphic1AddProdPow(mes, mes + 987, pub, prv)
