@@ -237,15 +237,15 @@ class PaillierScheme1PrivateKey(object):
         lcl = L(cl, self.n)
         return (lcl * self.mu) % self.n
         # TBD: Paillier 1999, p. 234, Decryption using Chinese-remaindering
-        # recommends to speed decryption up by splitting up over p and q, i.e. p2p1 and q2p1
-        # mp = (L(c^(p2p1-1) mod p2p1^2, p2p1) * hp) mod p2p1
-        # mq = (L(c^(q2p1-1) mod q2p1^2, q2p1) * hq) mod q2p1
-        # m = CRT(mp, mq) mod (p2p1*q2p1)
+        # recommends to speed decryption up by splitting up over p and q.
+        # mp = (L(c^(p-1) mod p^2, p) * hp) mod p
+        # mq = (L(c^(q-1) mod q^2, q) * hq) mod q
+        # m = CRT(mp, mq) mod (p*q)
         # with precomputations:
-        # hp = (L(g^(p2p1-1) mod p2p1^2)^-1 mod p2p1
-        # hq = (L(g^(q2p1-1) mod q2p1^2)^-1 mod q2p1
+        # hp = (L(g^(p-1) mod p^2)^-1 mod p
+        # hq = (L(g^(q-1) mod q^2)^-1 mod q
         #
-        # CRT(mp, mq) mod (p2p1 * q2p1) is defined in
+        # CRT(mp, mq) mod (p * q) is defined in
         # https://en.wikipedia.org/wiki/Chinese_remainder_theorem#Computation
         # the CRT requires the extended Euclidian algorithm.
 
@@ -271,18 +271,12 @@ Referred to as Svenda 2016.
 
 def generateKeysPaillierScheme1(nBitSize):
     """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size. """
-    assert nBitSize > 210 # Allow p2p1 and q2p1 at least 105 bits, p and q at least 104, see Fermat factorization below.
+    assert nBitSize > 210 # Allow p and q at least 105 bits, p and q at least 104, see Fermat factorization below.
     assert nBitSize <= 4096 # Depends on available processing speed.
 
-    # Choose a random prime number p2p1 of just less than nBitSize//2, and q2p1 of the remaining bitsize for nBitSize.
-    # Here use (p2p1, p) for the Germain prime pair (p * 2 + 1, p), and similarly for q.
-    # Therefore here n = p2p1 * q2p1.
+    # Choose a random prime number p of just less than nBitSize//2, and q of the remaining bitsize for nBitSize.
 
-    # Paillier and Pointcheval 1999, mentions:
-    # "we will focus on moduli n = pq such that gcd(p − 1, q − 1) = 2, which yields φ = 2λ."
-    # The Germain prime pairs here have this gcd: gcd(p2p1 - 1, q2p1 - 1)
-
-    # See Koblitz chapter IV.2 RSA on choosing p2p1 and q2p1: differ by a few decimal digits,
+    # See Koblitz chapter IV.2 RSA on choosing p and q: differ by a few decimal digits,
     # a weaker check is done below to avoid easy Fermat factorization,
     # see https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
 
@@ -303,7 +297,7 @@ def generateKeysPaillierScheme1(nBitSize):
         # See https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
         # and https://crypto.stackexchange.com/questions/5262/rsa-and-prime-difference
         # and https://crypto.stackexchange.com/questions/5698/ansi-x9-31-standards-for-generating-random-numbers
-        # p2p1 and q2p1 should differ in their first 100 bits, and p and q in their first 99 bits: absdiff > 2^(nBitSize/2−100)
+        # p and q should differ in their first 100 bits, and p and q in their first 99 bits: absdiff > 2^(nBitSize/2−100)
         # Here p.bit_length() = k/2-1
         minBitLengthPQ = min(p.bit_length(), q.bit_length())
         assert minBitLengthPQ > 100
@@ -313,7 +307,6 @@ def generateKeysPaillierScheme1(nBitSize):
         if n.bit_length() == nBitSize:
             break
 
-    # lmbda = 2 * p * q # lcm(p2p1 - 1, q2p1 - 1)
     lmbda = lcm(p - 1, q - 1)
     phiN = (p - 1) * (q - 1)
     nSquared = n ** 2
