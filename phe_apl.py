@@ -186,11 +186,11 @@ except ImportError: # gmpy2 not available
             r += 1
 
         def checkWitness(a): # for n composite
-            x = pow(a, d, n)
+            x = powmod(a, d, n)
             if x == 1 or x == nMinus1:
                 return False # continue witness loop
             for _ in range(r - 1):
-                x = pow(x, 2, n)
+                x = powmod(x, 2, n)
                 if x == nMinus1:
                     return False # continue witness loop
             return True
@@ -364,8 +364,8 @@ if __name__ == "__main__":
         enc2 = pub.encrypt(m2 % pub.n)
         decProd = prv.decrypt((enc1 * enc2) % pub.nSquared)
         assert decProd == (m1 + m2) % pub.n
-        decPow12 = prv.decrypt(pow(enc1, m2, pub.nSquared))
-        decPow21 = prv.decrypt(pow(enc2, m1, pub.nSquared))
+        decPow12 = prv.decrypt(powmod(enc1, m2, pub.nSquared))
+        decPow21 = prv.decrypt(powmod(enc2, m1, pub.nSquared))
         prod = (m1 * m2) % pub.n
         assert decPow12 == prod
         assert decPow21 == prod
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     def test1Blinding(mes, pub, prv):
         r = random.randrange(1, pub.n)
         enc = pub.encrypt(mes % pub.n)
-        blinded = (enc * (pow(r, pub.n, pub.nSquared))) % pub.nSquared
+        blinded = (enc * (powmod(r, pub.n, pub.nSquared))) % pub.nSquared
         decBlinded = prv.decrypt(blinded)
         assert decBlinded == mes
         print("test1Blinding passed")
