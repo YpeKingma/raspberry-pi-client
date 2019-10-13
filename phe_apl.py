@@ -261,16 +261,16 @@ def generateKeysPaillierScheme1(nBitSize):
     assert nBitSize > 210 # Allow p and q at least 105 bits, p and q at least 104, see Fermat factorization below.
     assert nBitSize <= 8192 # Depends on available processing speed.
 
-    # Choose a random prime number p of just less than nBitSize//2, and q of the remaining bitsize for nBitSize.
+    # Choose a random prime number p of nBitSize//2, and q of the remaining bitsize for nBitSize.
 
     # See Koblitz chapter IV.2 RSA on choosing p and q: differ by a few decimal digits,
     # a weaker check is done below to avoid easy Fermat factorization,
     # see https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
 
-    # See also Rivest 1999: Germain primes do not hurt, but do not bring better protection
+    # See also Rivest 1999: safe (Germain) primes do not hurt, but do not bring better protection
     # than large enough primes.
     # Strong primes (with a large factor in p+1) are not considered here,
-    # see also https://gmpy2.readthedocs.io/en/latest/advmpz.html .
+    # see also https://gmpy2.readthedocs.io/en/latest/advmpz.html for corresponding checks.
 
     bitSizeP = nBitSize//2
 
@@ -284,14 +284,14 @@ def generateKeysPaillierScheme1(nBitSize):
         # See https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
         # and https://crypto.stackexchange.com/questions/5262/rsa-and-prime-difference
         # and https://crypto.stackexchange.com/questions/5698/ansi-x9-31-standards-for-generating-random-numbers
-        # p and q should differ in their first 100 bits, and p and q in their first 99 bits: absdiff > 2^(nBitSize/2−100)
-        # Here p.bit_length() = k/2-1
+        # p and q should differ in their first 100 bits: abs(p-q) > 2^(nBitSize/2−100)
+        # Here p.bit_length() = k//2
         minBitLengthPQ = min(p.bit_length(), q.bit_length())
         assert minBitLengthPQ > 100
         if (abs(p-q) >> (minBitLengthPQ - 100)) == 0: # guard against Fermat factorization, very very unlikely for nBitSize > 250
             continue # retry
-        n = p * q
-        if n.bit_length() == nBitSize:
+        n = p * q                        
+        if n.bit_length() == nBitSize: # could be too large, but very very unlikely.
             break
 
     lmbda = lcm(p - 1, q - 1)
