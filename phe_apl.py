@@ -41,9 +41,25 @@ Paillier and Pointcheval 1999:
 
 Koblitz:
 Neal Koblitz, A course in number theory and cryptography, Springer, 1994, 2nd ed.
-"""
 
-""" List of TBD:
+@inproceedings{rivest1999arestrong,
+  title={AreStrong'Primes Needed for RSA?},
+  author={Rivest, Ronald L and Silverman, Robert D},
+  booktitle={IN THE 1997 RSA LABORATORIES SEMINAR SERIES, SEMINARS PROCEEDINGS},
+  year={1999}
+}
+Referred to as Rivest 1999.
+
+@inproceedings{vsvenda2016million,
+  title={The Million-Key Question—Investigating the Origins of $\{$RSA$\}$ Public Keys},
+  author={{\v{S}}venda, Petr and Nemec, Mat{\'u}{\v{s}} and Sekan, Peter and Kva{\v{s}}{\v{n}}ovsk{\`y}, Rudolf and Form{\'a}nek, David and Kom{\'a}rek, David and Maty{\'a}{\v{s}}, Vashek},
+  booktitle={25th $\{$USENIX$\}$ Security Symposium ($\{$USENIX$\}$ Security 16)},
+  pages={893--910},
+  year={2016}
+}
+Referred to as Svenda 2016.
+
+List of TBD:
 
 Implement the fast variant of Paillier, Scheme 3, and follow section 7
 on efficiency and implementation aspects. Scheme 3 uses a shorter prime (160 bit) alpha,
@@ -185,16 +201,6 @@ except ImportError: # gmpy2 not available
         return a * b // gcd(a, b)
 
 
-def germainPrime(q):
-    """ Check whether 2*q+1 and q are both probable primes.
-        When so, 2*q+1 is normally referred to as a safe prime.
-    """
-    if isProbablePrime(q):
-        p = 2 * q + 1
-        if isProbablePrime(p):
-            return True
-    return False
-
 
 def L(u, n): # See Paillier, p. 227, and https://en.wikipedia.org/wiki/Paillier_cryptosystem
     return (u - 1) // n # floor division
@@ -249,25 +255,6 @@ class PaillierScheme1PrivateKey(object):
         # https://en.wikipedia.org/wiki/Chinese_remainder_theorem#Computation
         # the CRT requires the extended Euclidian algorithm.
 
-"""
-@inproceedings{rivest1999arestrong,
-  title={AreStrong'Primes Needed for RSA?},
-  author={Rivest, Ronald L and Silverman, Robert D},
-  booktitle={IN THE 1997 RSA LABORATORIES SEMINAR SERIES, SEMINARS PROCEEDINGS},
-  year={1999}
-}
-Referred to as Rivest 1999.
-
-@inproceedings{vsvenda2016million,
-  title={The Million-Key Question—Investigating the Origins of $\{$RSA$\}$ Public Keys},
-  author={{\v{S}}venda, Petr and Nemec, Mat{\'u}{\v{s}} and Sekan, Peter and Kva{\v{s}}{\v{n}}ovsk{\`y}, Rudolf and Form{\'a}nek, David and Kom{\'a}rek, David and Maty{\'a}{\v{s}}, Vashek},
-  booktitle={25th $\{$USENIX$\}$ Security Symposium ($\{$USENIX$\}$ Security 16)},
-  pages={893--910},
-  year={2016}
-}
-Referred to as Svenda 2016.
-
-"""
 
 def generateKeysPaillierScheme1(nBitSize):
     """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size. """
@@ -329,7 +316,7 @@ if __name__ == "__main__":
 
     def testProbablePrime():
         numBits = 500
-        startRange = pow(2, numBits)
+        startRange = 2 ** numBits
         rangeSize = 10000
         numFound = 0
         print("startRange", startRange)
@@ -339,17 +326,14 @@ if __name__ == "__main__":
                 numFound += 1
         print("numFound", numFound)
 
-    def testSmallSG():
-        smallSGprimes = [2, 3, 5, 11, 23, 29, 41, 53, 83, 89, 113, 131, 173, 179,
-                        191, 233, 239, 251, 281, 293, 359, 419, 431, 443, 491, 509,
-                        593, 641, 653, 659, 683, 719, 743, 761, 809, 911, 953]
-        prev = smallSGprimes[0]
-        for q in smallSGprimes:
-            while prev < q:
-                assert not germainPrime(prev)
-                prev += 1
-            assert germainPrime(q)
-            prev += 1
+    def testPaillierKeySize(nBitSize, mes):
+        pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
+        print("generated keys, nBitSize", nBitSize)
+        print("n", pub.n)
+        enc = pub.encrypt(mes)
+        dec = prv.decrypt(enc)
+        assert mes == dec
+        print("testPaillierKeySize passed")
 
     def testHomomorphic1AddProdPow(m1, m2, pub, prv):
         enc1 = pub.encrypt(m1 % pub.n)
@@ -371,26 +355,16 @@ if __name__ == "__main__":
         assert decBlinded == mes
         print("test1Blinding passed")
 
-    def testPaillierKeySize(nBitSize, mes):
-        pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
-        print("generated keys, nBitSize", nBitSize)
-        print("n", pub.n)
-        enc = pub.encrypt(mes)
-        dec = prv.decrypt(enc)
-        assert mes == dec
-        print("testPaillierKeySize passed")
-
     testProbablePrime()
-    testSmallSG()
 
     mes = 301
-    testPaillierKeySize(212, mes)
+    testPaillierKeySize(211, mes)
     testPaillierKeySize(256, mes)
     testPaillierKeySize(512, mes)
     testPaillierKeySize(1024, mes)
     testPaillierKeySize(2048, mes)
-    #testPaillierKeySize(4096, mes)
-    #testPaillierKeySize(8192, mes)
+    testPaillierKeySize(4096, mes)
+    testPaillierKeySize(8192, mes)
 
     pub, prv = generateKeysPaillierScheme1(nBitSize=2048)
     testHomomorphic1AddProdPow(mes, mes + 987, pub, prv)
