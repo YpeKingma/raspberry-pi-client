@@ -89,13 +89,21 @@ try:
     from gmpy2 import gcd
 
     from gmpy2 import random_state, mpz_random, mpz_urandomb
-    gmpy_random_state = random_state(secureRandom.randrange(2 ** 63))
 
-    def randomIntBitSize(bitSize):
+    gmpy_random_state = random_state(random.randrange(2 ** 63))
+
+    def _randIntBitSize(bitSize, rndState):
         p2 = mpz(2) ** (bitSize - 1)
         res = p2 + mpz_urandomb(gmpy_random_state, bitSize - 1)
         assert res.bit_length() == bitSize
         return res
+
+    def randomIntBitSize(bitSize):
+        return _randIntBitSize(bitSize, gmpy_random_state)
+
+    def secureRandomIntBitSize(bitSize):
+        new_secure_seed = secureRandom.randrange(2 ** bitSize)
+        return _randIntBitSize(bitSize, random_state(new_secure_seed))
 
     from gmpy2 import is_prime
     def isProbablePrime(n, trials=25):
@@ -111,11 +119,17 @@ except ImportError: # gmpy2 not available
     def mpz(n): # to avoid duplicate code
         return n
 
-    def randomIntBitSize(bitSize):
+    def _randIntBitSize(bitSize, rnd):
         p2 = 2 ** (bitSize - 1)
-        res = secureRandom.randrange(p2, 2 * p2)
+        res = rnd.randrange(p2, 2 * p2)
         assert res.bit_length() == bitSize
         return res
+
+    def randomIntBitSize(bitSize):
+        return _randIntBitSize(bitSize, random)
+
+    def secureRandomIntBitSize(bitSize):
+        return _randIntBitSize(bitSize, secureRandom)
 
     powmod = pow # only with non negative powers when modulo argument is present.
 
@@ -209,11 +223,11 @@ def L(u, n): # See Paillier, p. 227, and https://en.wikipedia.org/wiki/Paillier_
 
 
 class PaillierScheme1PublicKey(object): # Paillier 1999, p. 229
-    def __init__(self, n, nSquared, g):
+    def __init__(self, n, nSquared, g, rnd=secureRandom):
         self.n = mpz(n)
         self.nSquared = mpz(nSquared)
         self.g = mpz(g)
-        r = mpz(secureRandom.randrange(5, self.n)) # avoid r <= 4
+        r = mpz(rnd.randrange(5, self.n)) # avoid r <= 4
         self.rpown = powmod(r, n, self.nSquared)
 
     def encrypt(self, m):
@@ -256,8 +270,11 @@ class PaillierScheme1PrivateKey(object):
         # the CRT requires the extended Euclidian algorithm.
 
 
-def generateKeysPaillierScheme1(nBitSize):
-    """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size. """
+def generateKeysPaillierScheme1(nBitSize, useSecureRandom=True):
+    """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size.
+        When useSecureRandom True, the python SystemRandom module is used for generating p, q and g.
+        Otherwise the python random module is used.
+    """
     assert nBitSize > 210 # Allow p and q at least 105 bits, p and q at least 104, see Fermat factorization below.
     assert nBitSize <= 8192 # Depends on available processing speed.
 
@@ -275,8 +292,12 @@ def generateKeysPaillierScheme1(nBitSize):
     bitSizeP = nBitSize//2
 
     while True:
-        nMin = randomIntBitSize(nBitSize) # to start looking for q after generating p; uniform distribution
-        pMin = randomIntBitSize(bitSizeP) # uniform distribution.
+        if useSecureRandom:
+            nMin = secureRandomIntBitSize(nBitSize) # to start looking for q after generating p; uniform distribution
+            pMin = secureRandomIntBitSize(bitSizeP) # uniform distribution.
+        else:
+            nMin = randomIntBitSize(nBitSize) # to start looking for q after generating p; uniform distribution
+            pMin = randomIntBitSize(bitSizeP) # uniform distribution.
         p = nextPrime(pMin)
         qMin = nMin // p # uses only the upper half of the bits of nMin; the distribution of qMin is not uniform
         q = nextPrime(qMin)
@@ -290,7 +311,7 @@ def generateKeysPaillierScheme1(nBitSize):
         assert minBitLengthPQ > 100
         if (abs(p-q) >> (minBitLengthPQ - 100)) == 0: # guard against Fermat factorization, very very unlikely for nBitSize > 250
             continue # retry
-        n = p * q                        
+        n = p * q
         if n.bit_length() == nBitSize: # could be too large, but very very unlikely.
             break
 
@@ -303,7 +324,10 @@ def generateKeysPaillierScheme1(nBitSize):
     # gcd(L(g^lmbda mod n^2, n), n) = 1
     while True:
         # TBD: Paillier 1999, p. 233 under Encryption, use a small g for encryption efficiency.
-        g = mpz(secureRandom.randrange(4, nSquared))
+        if useSecureRandom:
+            g = mpz(secureRandom.randrange(4, nSquared))
+        else:
+            g = mpz(random.randrange(4, nSquared))
         if gcd(L(powmod(g, lmbda, nSquared), n), n) == 1:
             break
 
@@ -326,8 +350,8 @@ if __name__ == "__main__":
                 numFound += 1
         print("numFound", numFound)
 
-    def testPaillierKeySize(nBitSize, mes):
-        pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
+    def testPaillierKeySize(nBitSize, mes, useSecureRandom=True):
+        pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize, useSecureRandom=useSecureRandom)
         print("generated keys, nBitSize", nBitSize)
         print("n", pub.n)
         enc = pub.encrypt(mes)
@@ -360,6 +384,7 @@ if __name__ == "__main__":
     mes = 301
     testPaillierKeySize(211, mes)
     testPaillierKeySize(256, mes)
+    testPaillierKeySize(256, mes, useSecureRandom=False)
     testPaillierKeySize(512, mes)
     testPaillierKeySize(1024, mes)
     testPaillierKeySize(2048, mes)
