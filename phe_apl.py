@@ -67,7 +67,6 @@ except ImportError: # before python 3.6
 try:
     # raise ImportError # simulate gmpy2 not available
     import gmpy2
-    gmpy2Available = True
 
     from gmpy2 import mpz
     from gmpy2 import powmod
@@ -91,8 +90,7 @@ try:
 
     from gmpy2 import lcm
 
-except ImportError:
-    gmpy2Available = False
+except ImportError: # gmpy2 not available
 
     def mpz(n): # to avoid duplicate code
         return n
@@ -178,7 +176,6 @@ except ImportError:
         p = q | 1
         if p == q:
             p += 2
-        assert p & 1 != 0
         while True:
             if isProbablePrime(p):
                 return p
@@ -294,7 +291,6 @@ def generateKeysPaillierScheme1(nBitSize):
     # Strong primes (with a large factor in p+1) are not considered here,
     # see also https://gmpy2.readthedocs.io/en/latest/advmpz.html .
 
-    pqBitSize = nBitSize - 2
     bitSizeP = nBitSize//2
 
     while True:
