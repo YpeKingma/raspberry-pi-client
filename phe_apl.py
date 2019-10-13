@@ -275,7 +275,7 @@ Referred to as Svenda 2016.
 def generateKeysPaillierScheme1(nBitSize):
     """ Return a tuple of (PaillierPublicKey, PaillierPrivateKey) instances with n of the given size. """
     assert nBitSize > 210 # Allow p2p1 and q2p1 at least 105 bits, p and q at least 104, see Fermat factorization below.
-    assert nBitSize <= 2000 # Tested for max 2000. Depends on available processing speed.
+    assert nBitSize <= 4096 # Depends on available processing speed.
 
     # Choose a random prime number p2p1 of just less than nBitSize//2, and q2p1 of the remaining bitsize for nBitSize.
     # Here use (p2p1, p) for the Germain prime pair (p * 2 + 1, p), and similarly for q.
@@ -385,7 +385,7 @@ if __name__ == "__main__":
     testProbablePrime()
     testSmallSG()
 
-    nBitSize = 2000
+    nBitSize = 4096
     pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
     print("generated keys, nBitSize", nBitSize)
     print("n", pub.n)
