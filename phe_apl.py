@@ -325,9 +325,11 @@ def generateKeysPaillierScheme1(nBitSize):
         # See https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
         # and https://crypto.stackexchange.com/questions/5262/rsa-and-prime-difference
         # and https://crypto.stackexchange.com/questions/5698/ansi-x9-31-standards-for-generating-random-numbers
-        # p2p1 and q2p1 should differ in their first 100 bits, and p and q in their first 99 bits.
-        assert min (p.bit_length(), q.bit_length()) > 99
-        if (abs(p-q) >> 99) == 0: # guard against Fermat factorization, very unlikely for nBitSize > 250
+        # p2p1 and q2p1 should differ in their first 100 bits, and p and q in their first 99 bits: absdiff > 2^(nBitSize/2−100)
+        # Here p.bit_length() = k/2-1
+        minBitLengthPQ = min(p.bit_length(), q.bit_length())
+        assert minBitLengthPQ > 99
+        if (abs(p-q) >> (minBitLengthPQ - 99)) == 0: # guard against Fermat factorization, very very unlikely for nBitSize > 250
             continue # retry
         n = p2p1 * q2p1 # Hopefully random enough, see Svenda 2016, ch. 4.
         if n.bit_length() == nBitSize:
@@ -411,7 +413,7 @@ if __name__ == "__main__":
     testSmallSG()
     testNextGermain()
 
-    nBitSize = 900
+    nBitSize = 220
     pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
     print("generated keys, nBitSize", nBitSize)
     print("n", pub.n)
