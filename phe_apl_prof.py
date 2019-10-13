@@ -7,14 +7,14 @@ def testAdditionPerf(m, nBitSize):
     # Compute sum(1..m) via encryption and check the decryption for correctness.
     m = mpz(m)
     total = (1 + m) * m // 2 # see https://en.wikipedia.org/wiki/Triangular_number
-    assert total.bit_length() < nBitSize
     pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize, useSecureRandom=False)
+    fac = pub.n // total # get many non zero bits to be encrypted
     totalEnc = 1
     for i in range(1,m+1):
-        enc = pub.encrypt(i) # runtime is dominated by powmod call in encrypt()
+        enc = pub.encrypt(i * fac) # runtime is dominated by powmod call in encrypt()
         totalEnc = (totalEnc * enc) % pub.nSquared
         decTotal = prv.decrypt(totalEnc) # outside loop to test encryption only.
-    assert decTotal == total
+    assert decTotal == (total * fac)
     print("testAdditionPerf passed")
 
 #cProfile.run('testAdditionPerf(m=100000, nBitSize=1024)')
