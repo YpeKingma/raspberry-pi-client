@@ -379,6 +379,24 @@ if __name__ == "__main__":
         assert decBlinded == mes
         print("test1Blinding passed")
 
+    def testAdditionPerf(m, nBitSize):
+        print("testAdditionPerf", m , nBitSize)
+        # Compute sum(1..m) via encryption and check the decryption for correctness.
+        m = mpz(m)
+        total = (1 + m) * m // 2 # see https://en.wikipedia.org/wiki/Triangular_number
+        assert total.bit_length() < nBitSize
+        pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize, useSecureRandom=False)
+        totalEnc = 1
+        for i in range(1,m+1):
+            enc = pub.encrypt(i)
+            totalEnc = (totalEnc * enc) % pub.nSquared
+        decTotal = prv.decrypt(totalEnc)
+        assert decTotal == total
+        print("testAdditionPerf passed")
+
+
+    random.seed(65539)
+
     testProbablePrime()
 
     mes = 301
@@ -387,10 +405,12 @@ if __name__ == "__main__":
     testPaillierKeySize(256, mes, useSecureRandom=False)
     testPaillierKeySize(512, mes)
     testPaillierKeySize(1024, mes)
-    testPaillierKeySize(2048, mes)
+    #testPaillierKeySize(2048, mes)
     #testPaillierKeySize(4096, mes)
     #testPaillierKeySize(8192, mes)
 
     pub, prv = generateKeysPaillierScheme1(nBitSize=2048)
     testHomomorphic1AddProdPow(mes, mes + 987, pub, prv)
     test1Blinding(mes, pub, prv)
+
+    testAdditionPerf(m=100000, nBitSize=1024)
