@@ -50,8 +50,6 @@ on efficiency and implementation aspects. Scheme 3 uses a shorter prime (160 bit
 1 <= alpha <= lmbda (Pailler, top of p. 232, end of section 6, p. 233).
 See also the table on p. 235 for the expected speeds of the different schemes.
 
-Use gmpy2 when available.
-
 Make this a pip installable library.
 
 More possible performance optimizations are in the comments.
@@ -91,10 +89,7 @@ try:
         return is_prime(n, trials)
 
     from gmpy2 import next_prime
-
-    def nextPrime(q):
-        """ For given q, return the smallest p > q that is probable prime """
-        return next_prime(q)
+    nextPrime = next_prime #  """ For given q, return the smallest p > q that is probable prime """
 
     def nextGermain(q):
         """ Generate a Sophie Germain prime tuple (p,q) with p = 2 * q + 1 and p and q both probable prime,
@@ -223,6 +218,8 @@ except ImportError:
                     return (p, q)
             q += 12
 
+    def lcm(a, b):
+        return a * b // gcd(a, b)
 
 
 def germainPrime(q):
