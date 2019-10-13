@@ -363,8 +363,8 @@ if __name__ == "__main__":
     testPaillierKeySize(512, mes)
     testPaillierKeySize(1024, mes)
     testPaillierKeySize(2048, mes)
-    testPaillierKeySize(4096, mes)
-    testPaillierKeySize(8192, mes)
+    #testPaillierKeySize(4096, mes)
+    #testPaillierKeySize(8192, mes)
 
     pub, prv = generateKeysPaillierScheme1(nBitSize=2048)
     testHomomorphic1AddProdPow(mes, mes + 987, pub, prv)
