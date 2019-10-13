@@ -308,7 +308,8 @@ def generateKeysPaillierScheme1(nBitSize):
 
     # See also Rivest 1999: Germain primes do not hurt, but do not bring better protection
     # than large enough primes.
-    # Strong primes (with a large factor in p+1) are not considered here.
+    # Strong primes (with a large factor in p+1) are not considered here,
+    # see also https://gmpy2.readthedocs.io/en/latest/advmpz.html .
 
     pqBitSize = nBitSize - 2
     bitSizeP = pqBitSize//2
