@@ -13,9 +13,9 @@ def testAdditionPerf(m, nBitSize):
     for i in range(1,m+1):
         enc = pub.encrypt(i) # runtime is dominated by powmod call in encrypt()
         totalEnc = (totalEnc * enc) % pub.nSquared
-    decTotal = prv.decrypt(totalEnc)
+        decTotal = prv.decrypt(totalEnc) # outside loop to test encryption only.
     assert decTotal == total
     print("testAdditionPerf passed")
 
 #cProfile.run('testAdditionPerf(m=100000, nBitSize=1024)')
-testAdditionPerf(m=100000, nBitSize=2048)
+testAdditionPerf(m=100, nBitSize=2048)
