@@ -382,17 +382,26 @@ if __name__ == "__main__":
         assert decBlinded == mes
         print("test1Blinding passed")
 
+    def testPaillierKeySize(nBitSize, mes):
+        pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
+        print("generated keys, nBitSize", nBitSize)
+        print("n", pub.n)
+        enc = pub.encrypt(mes)
+        dec = prv.decrypt(enc)
+        assert mes == dec
+        print("testPaillierKeySize passed")
+
     testProbablePrime()
     testSmallSG()
 
-    nBitSize = 4096
-    pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
-    print("generated keys, nBitSize", nBitSize)
-    print("n", pub.n)
     mes = 301
-    enc = pub.encrypt(mes)
-    dec = prv.decrypt(enc)
-    assert mes == dec
+    testPaillierKeySize(212, mes)
+    testPaillierKeySize(256, mes)
+    testPaillierKeySize(512, mes)
+    testPaillierKeySize(1024, mes)
+    testPaillierKeySize(2048, mes)
+    testPaillierKeySize(4096, mes)
 
+    pub, prv = generateKeysPaillierScheme1(nBitSize=2048)
     testHomomorphic1AddProdPow(mes, mes + 987, pub, prv)
     test1Blinding(mes, pub, prv)
