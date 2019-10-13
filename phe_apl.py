@@ -91,6 +91,11 @@ try:
         return is_prime(n, trials)
 
     from gmpy2 import next_prime
+
+    def nextPrime(q):
+        """ For given q, return the smallest p > q that is probable prime """
+        return next_prime(q)
+
     def nextGermain(q):
         """ Generate a Sophie Germain prime tuple (p,q) with p = 2 * q + 1 and p and q both probable prime,
         The return value is a tuple of such probable primes (p, q) with q bigger than the given q.
@@ -101,6 +106,8 @@ try:
             p = 2 * q + 1
             if is_prime(p):
                 return (p, q)
+
+    from gmpy2 import lcm
 
 except ImportError:
     gmpy2Available = False
@@ -182,6 +189,19 @@ except ImportError:
             if checkWitness(rnd.randrange(2, nMinus1)):
                 return False
         return True
+
+
+    def nextPrime(q):
+        """ Return the smallest p > q that is probable prime """
+        p = q | 1
+        if p == q:
+            p += 2
+        assert p & 1 != 0
+        while True:
+            if isProbablePrime(p):
+                return p
+            p += 2
+
 
     def nextGermain(q):
         """ Generate a Sophie Germain prime tuple (p,q) with p = 2 * q + 1 and p and q both probable prime,
@@ -312,15 +332,14 @@ def generateKeysPaillierScheme1(nBitSize):
     # see also https://gmpy2.readthedocs.io/en/latest/advmpz.html .
 
     pqBitSize = nBitSize - 2
-    bitSizeP = pqBitSize//2
+    bitSizeP = nBitSize//2
 
     while True:
-        # Try and avoid classification by modulus n, by starting from a random value for n.
-        # See Svenda 2016, Chapter 4, Key source detection.
-        nMin = randomIntBitSize(nBitSize) # to start looking for q after generating p
-        (p2p1, p) = nextGermain(randomIntBitSize(bitSizeP))
-        qMin = nMin // 2 // p2p1
-        (q2p1, q) = nextGermain(qMin)
+        nMin = randomIntBitSize(nBitSize) # to start looking for q after generating p; uniform distribution
+        pMin = randomIntBitSize(bitSizeP) # uniform distribution.
+        p = nextPrime(pMin)
+        qMin = nMin // p # uses only the upper half of the bits of nMin; the distribution of qMin is not uniform
+        q = nextPrime(qMin)
 
         # See https://en.wikipedia.org/wiki/Fermat%27s_factorization_method
         # and https://crypto.stackexchange.com/questions/5262/rsa-and-prime-difference
@@ -328,15 +347,16 @@ def generateKeysPaillierScheme1(nBitSize):
         # p2p1 and q2p1 should differ in their first 100 bits, and p and q in their first 99 bits: absdiff > 2^(nBitSize/2−100)
         # Here p.bit_length() = k/2-1
         minBitLengthPQ = min(p.bit_length(), q.bit_length())
-        assert minBitLengthPQ > 99
-        if (abs(p-q) >> (minBitLengthPQ - 99)) == 0: # guard against Fermat factorization, very very unlikely for nBitSize > 250
+        assert minBitLengthPQ > 100
+        if (abs(p-q) >> (minBitLengthPQ - 100)) == 0: # guard against Fermat factorization, very very unlikely for nBitSize > 250
             continue # retry
-        n = p2p1 * q2p1 # Hopefully random enough, see Svenda 2016, ch. 4.
+        n = p * q
         if n.bit_length() == nBitSize:
             break
 
-    lmbda = 2 * p * q # lcm(p2p1 - 1, q2p1 - 1)
-    phiN = (p2p1 - 1) * (q2p1 - 1)
+    # lmbda = 2 * p * q # lcm(p2p1 - 1, q2p1 - 1)
+    lmbda = lcm(p - 1, q - 1)
+    phiN = (p - 1) * (q - 1)
     nSquared = n ** 2
 
     # Paillier uses g as an element of Z*nSquared (see Paillier, p. 225,  under 3).
@@ -413,7 +433,7 @@ if __name__ == "__main__":
     testSmallSG()
     testNextGermain()
 
-    nBitSize = 220
+    nBitSize = 2000
     pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize)
     print("generated keys, nBitSize", nBitSize)
     print("n", pub.n)
