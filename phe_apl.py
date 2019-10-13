@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function # for development only
+from __future__ import print_function # for python2 development only
 
 """  Homomorphic encryption as defined in this paper by Pascal Paillier (in bibtex format):
 @inproceedings{paillier1999public,
