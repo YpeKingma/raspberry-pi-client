@@ -265,7 +265,7 @@ class PaillierScheme1PrivateKey(object):
         self.qSquared = q ** 2
         gqm1q2 = powmod(g, q - 1, self.qSquared)
         lgq = L(gqm1q2, q)
-        self.hq = powmod(lgq, qm1 - 1, q)
+        self.hq = powmod(lgq, q - 2, q)
 
 
     def decrypt(self, c):
@@ -278,11 +278,11 @@ class PaillierScheme1PrivateKey(object):
         # Paillier 1999, p. 234, Decryption using Chinese-remaindering
         # recommends to speed decryption up by splitting up over p and q.
         cpm1p2 = powmod(c, self.p - 1, self.pSquared)
-        lcp = L(cpm1p2, p)
+        lcp = L(cpm1p2, self.p)
         mp = (lcp * self.hp) % self.p
 
         cqm1q2 = powmod(c, self.q - 1, self.qSquared)
-        lcq = L(cqm1q2, q)
+        lcq = L(cqm1q2, self.q)
         mq = (lcq * self.hq) % self.q
 
         # mp = (L(c^(p-1) mod p^2, p) * self.hp) mod p
