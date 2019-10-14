@@ -113,6 +113,10 @@ try:
 
     from gmpy2 import lcm
 
+    from gmpy2 import gcdext
+    # gcdext(a, b) returns a 3-element tuple (g, s, t) such that
+    # g == gcd(a, b) and g == a * s + b * t
+
 except ImportError: # gmpy2 not available
 
     def mpz(n): # to avoid duplicate code
@@ -236,7 +240,8 @@ class PaillierScheme1PublicKey(object): # Paillier 1999, p. 229
 
 
 class PaillierScheme1PrivateKey(object):
-    def __init__(self, n, nSquared, g, lmbda, phiN):
+    # def __init__(self, n, nSquared, g, lmbda, phiN):
+    def __init__(self, n, nSquared, g, lmbda, phiN, p, q):
         self.n = mpz(n)
         self.nSquared = mpz(nSquared)
         self.lmbda = mpz(lmbda)
@@ -249,20 +254,52 @@ class PaillierScheme1PrivateKey(object):
         self.mu = powmod(lgl, mpz(phiN - 1), self.n) # precomputed constant, see Paillier 1999, top of p. 234.
         assert (self.mu * lgl) % n == 1
 
+        # Precomputations for CRT, Paillier p. 234.
+        self.p = p
+        self.pSquared = p ** 2
+        gpm1p2 = powmod(g, p - 1, self.pSquared)
+        lgp = L(gpm1p2, p)
+        self.hp = powmod(lgp, p - 2, p)
+
+        self.q = q
+        self.qSquared = q ** 2
+        gqm1q2 = powmod(g, q - 1, self.qSquared)
+        lgq = L(gqm1q2, q)
+        self.hq = powmod(lgq, qm1 - 1, q)
+
+
     def decrypt(self, c):
         """ Decrypt an encrypted number, using Scheme 1. """
         assert c >= 0 and c < self.nSquared
-        cl = powmod(c, self.lmbda, self.nSquared)
-        lcl = L(cl, self.n)
-        return (lcl * self.mu) % self.n
-        # TBD: Paillier 1999, p. 234, Decryption using Chinese-remaindering
+        #cl = powmod(c, self.lmbda, self.nSquared)
+        #lcl = L(cl, self.n)
+        #return (lcl * self.mu) % self.n
+
+        # Paillier 1999, p. 234, Decryption using Chinese-remaindering
         # recommends to speed decryption up by splitting up over p and q.
-        # mp = (L(c^(p-1) mod p^2, p) * hp) mod p
-        # mq = (L(c^(q-1) mod q^2, q) * hq) mod q
-        # m = CRT(mp, mq) mod (p*q)
+        cpm1p2 = powmod(c, self.p - 1, self.pSquared)
+        lcp = L(cpm1p2, p)
+        mp = (lcp * self.hp) % self.p
+
+        cqm1q2 = powmod(c, self.q - 1, self.qSquared)
+        lcq = L(cqm1q2, q)
+        mq = (lcq * self.hq) % self.q
+
+        # mp = (L(c^(p-1) mod p^2, p) * self.hp) mod p
+        # mq = (L(c^(q-1) mod q^2, q) * self.hq) mod q
+        # m = CRT(mp, mq) mod self.n
+
+        (gcdmpmq, s, t) = gcdext(mp, mq)
+        # gcdext(a, b) returns a 3-element tuple (g, s, t) such that
+        # g == gcd(a, b) and g == a * s + b * t
+
+        m = (self.p * s + self.q * t) % self.n
+        return m
+
+
         # with precomputations:
-        # hp = (L(g^(p-1) mod p^2)^-1 mod p
-        # hq = (L(g^(q-1) mod q^2)^-1 mod q
+        # hp = (Lp(g^(p-1) mod p^2)^-1 mod p
+        # hq = (Lq(g^(q-1) mod q^2)^-1 mod q
         #
         # CRT(mp, mq) mod (p * q) is defined in
         # https://en.wikipedia.org/wiki/Chinese_remainder_theorem#Computation
@@ -288,7 +325,7 @@ def generateKeysPaillierScheme1(nBitSize, useSecureRandom=True):
     # Strong primes (with a large factor in p+1) are not considered here,
     # see also https://gmpy2.readthedocs.io/en/latest/advmpz.html for corresponding checks.
 
-    bitSizeP = nBitSize//2
+    bitSizeP = nBitSize // 2
 
     while True:
         if useSecureRandom:
@@ -331,7 +368,7 @@ def generateKeysPaillierScheme1(nBitSize, useSecureRandom=True):
             break
 
     publicKey = PaillierScheme1PublicKey(n, nSquared, g)
-    privateKey = PaillierScheme1PrivateKey(n, nSquared, g, lmbda, phiN)
+    privateKey = PaillierScheme1PrivateKey(n, nSquared, g, lmbda, phiN, p, q)
     return (publicKey, privateKey)
 
 
