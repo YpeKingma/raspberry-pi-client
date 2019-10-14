@@ -92,7 +92,7 @@ try:
 
     gmpy_random_state = random_state(random.randrange(2 ** 63))
 
-    def _randIntBitSize(bitSize, rndState):
+    def randomIntBitSize(bitSize):
         p2 = mpz(2) ** (bitSize - 1)
         res = p2 + mpz_urandomb(gmpy_random_state, bitSize - 1)
         assert res.bit_length() == bitSize
