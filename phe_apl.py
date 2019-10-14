@@ -255,28 +255,27 @@ class PaillierScheme1PrivateKey(object):
         assert (self.mu * lgl) % n == 1
 
         # Precomputations for CRT, Paillier p. 234.
-        self.p = p
+        self.p = mpz(p)
         self.pSquared = p ** 2
         gpm1p2 = powmod(g, p - 1, self.pSquared)
         lgp = L(gpm1p2, p)
         self.hp = powmod(lgp, p - 2, p)
+        assert (self.hp * lgp) % p == 1
 
-        self.q = q
+        self.q = mpz(q)
         self.qSquared = q ** 2
         gqm1q2 = powmod(g, q - 1, self.qSquared)
         lgq = L(gqm1q2, q)
         self.hq = powmod(lgq, q - 2, q)
+        assert (self.hq * lgq) % q == 1
 
 
     def decrypt(self, c):
         """ Decrypt an encrypted number, using Scheme 1. """
         assert c >= 0 and c < self.nSquared
-        #cl = powmod(c, self.lmbda, self.nSquared)
-        #lcl = L(cl, self.n)
-        #return (lcl * self.mu) % self.n
 
         # Paillier 1999, p. 234, Decryption using Chinese-remaindering
-        # recommends to speed decryption up by splitting up over p and q.
+        # to speed decryption up by splitting up over p and q :
         cpm1p2 = powmod(c, self.p - 1, self.pSquared)
         lcp = L(cpm1p2, self.p)
         mp = (lcp * self.hp) % self.p
@@ -285,25 +284,8 @@ class PaillierScheme1PrivateKey(object):
         lcq = L(cqm1q2, self.q)
         mq = (lcq * self.hq) % self.q
 
-        # mp = (L(c^(p-1) mod p^2, p) * self.hp) mod p
-        # mq = (L(c^(q-1) mod q^2, q) * self.hq) mod q
-        # m = CRT(mp, mq) mod self.n
-
         (gcdmpmq, s, t) = gcdext(mp, mq)
-        # gcdext(a, b) returns a 3-element tuple (g, s, t) such that
-        # g == gcd(a, b) and g == a * s + b * t
-
-        m = (self.p * s + self.q * t) % self.n
-        return m
-
-
-        # with precomputations:
-        # hp = (Lp(g^(p-1) mod p^2)^-1 mod p
-        # hq = (Lq(g^(q-1) mod q^2)^-1 mod q
-        #
-        # CRT(mp, mq) mod (p * q) is defined in
-        # https://en.wikipedia.org/wiki/Chinese_remainder_theorem#Computation
-        # the CRT requires the extended Euclidian algorithm.
+        return (mp * s + mq * t) % self.n # CRT chinese remainder
 
 
 def generateKeysPaillierScheme1(nBitSize, useSecureRandom=True):
