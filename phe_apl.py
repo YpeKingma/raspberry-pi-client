@@ -98,12 +98,11 @@ try:
         assert res.bit_length() == bitSize
         return res
 
-    def randomIntBitSize(bitSize):
-        return _randIntBitSize(bitSize, gmpy_random_state)
-
-    def secureRandomIntBitSize(bitSize):
-        new_secure_seed = secureRandom.randrange(2 ** bitSize)
-        return _randIntBitSize(bitSize, random_state(new_secure_seed))
+    def secureRandomIntBitSize(bitSize): # avoid gmpy2 mpz_urandomb
+        p2 = 2 ** (bitSize - 1)
+        res = secureRandom.randrange(p2, 2 * p2)
+        assert res.bit_length() == bitSize
+        return mpz(res)
 
     from gmpy2 import is_prime
     def isProbablePrime(n, trials=25):
