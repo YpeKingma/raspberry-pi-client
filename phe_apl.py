@@ -244,15 +244,15 @@ class PaillierScheme1PrivateKey(object):
     def __init__(self, n, nSquared, g, lmbda, phiN, p, q):
         self.n = mpz(n)
         self.nSquared = mpz(nSquared)
-        self.lmbda = mpz(lmbda)
-        gl = powmod(mpz(g), self.lmbda, self.nSquared)
-        lgl = L(gl, self.n)
+        # self.lmbda = mpz(lmbda)
+        # gl = powmod(mpz(g), self.lmbda, self.nSquared)
+        # lgl = L(gl, self.n)
         # Inverse modulo not yet available in python, i.e. pow(, -1, n).
         # Since pow(i, phi(m), m) == 1, for i != 0
         # (see https://www.algorithmist.com/index.php/Modular_inverse )
         # self.mu = inverseLgl = pow(lgl, phi(n) - 1, n)
-        self.mu = powmod(lgl, mpz(phiN - 1), self.n) # precomputed constant, see Paillier 1999, top of p. 234.
-        assert (self.mu * lgl) % n == 1
+        # self.mu = powmod(lgl, mpz(phiN - 1), self.n) # precomputed constant, see Paillier 1999, top of p. 234.
+        # assert (self.mu * lgl) % n == 1
 
         # Precomputations for CRT, Paillier p. 234.
         self.p = mpz(p)
