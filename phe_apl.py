@@ -284,7 +284,12 @@ class PaillierScheme1PrivateKey(object):
         lcq = L(cqm1q2, self.q)
         mq = (lcq * self.hq) % self.q
 
+        assert mp >= 0
+        assert mq >= 0
+
         (gcdmpmq, s, t) = gcdext(mp, mq)
+        assert s >= 0
+        assert t >= 0
         return (mp * s + mq * t) % self.n # CRT chinese remainder
 
 

@@ -11,6 +11,7 @@ def testAdditionPerf(m, nBitSize):
     pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize, useSecureRandom=False)
     fac = (pub.n - 1) // total # get many non zero bits to be encrypted
     fac = 2 ** 512 # passes, but test fails for 2 ** 1024, why?
+    fac = 2 ** 1024
     print("fac", fac)
     print("total * fac", total * fac)
     totalEnc = 1
