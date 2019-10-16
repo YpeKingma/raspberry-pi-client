@@ -288,9 +288,15 @@ class PaillierScheme1PrivateKey(object):
         assert mq >= 0
 
         (gcdmpmq, s, t) = gcdext(mp, mq)
-        assert s >= 0
-        assert t >= 0
-        return (mp * s + mq * t) % self.n # CRT chinese remainder
+        #if s < 0:
+        #    s += self.p
+        #if t < 0:
+        #    t += self.q
+        res = (mp * s + mq * t) % self.n # CRT chinese remainder
+        assert res > 0
+        #assert s >= 0
+        #assert t >= 0
+        return res
 
 
 def generateKeysPaillierScheme1(nBitSize, useSecureRandom=True):
