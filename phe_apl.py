@@ -279,23 +279,21 @@ class PaillierScheme1PrivateKey(object):
         cpm1p2 = powmod(c, self.p - 1, self.pSquared)
         lcp = L(cpm1p2, self.p)
         mp = (lcp * self.hp) % self.p
+        print("decrypt mp", mp)
+
+        assert mp >= 0
 
         cqm1q2 = powmod(c, self.q - 1, self.qSquared)
         lcq = L(cqm1q2, self.q)
         mq = (lcq * self.hq) % self.q
+        print("decrypt mq", mq)
 
-        assert mp >= 0
         assert mq >= 0
 
         (gcdmpmq, s, t) = gcdext(mp, mq)
-        #if s < 0:
-        #    s += self.p
-        #if t < 0:
-        #    t += self.q
         res = (mp * s + mq * t) % self.n # CRT chinese remainder
+
         assert res > 0
-        #assert s >= 0
-        #assert t >= 0
         return res
 
 
@@ -344,25 +342,31 @@ def generateKeysPaillierScheme1(nBitSize, useSecureRandom=True):
         if n.bit_length() == nBitSize: # could be too large, but very very unlikely.
             break
 
-    lmbda = lcm(p - 1, q - 1)
-    phiN = (p - 1) * (q - 1)
-    nSquared = n ** 2
+    rnd = secureRandom if useSecureRandom else random
+    return generatePaillierKeysScheme1FromNPQ(n, p, q, rnd)
 
+
+def generatePaillierKeysScheme1FromNPQ(n, p, q, rnd=secureRandom):
+    lmbda = lcm(p - 1, q - 1)
+    nSquared = n ** 2
+    print("generatePaillierKeysScheme1FromNPQ nSquared", nSquared)
+    g = generatePaillierG(n, nSquared, lmbda, rnd)
+    publicKey = PaillierScheme1PublicKey(n, nSquared, g)
+    phiN = (p - 1) * (q - 1)
+    privateKey = PaillierScheme1PrivateKey(n, nSquared, g, lmbda, phiN, p, q)
+    return (publicKey, privateKey)
+
+
+def generatePaillierG(n, nSquared, lmbda, rnd=secureRandom):
     # Paillier uses g as an element of Z*nSquared (see Paillier, p. 225,  under 3).
     # randomly select a base g from B by verifying eq (4) on p. 229:
     # gcd(L(g^lmbda mod n^2, n), n) = 1
     while True:
         # TBD: Paillier 1999, p. 233 under Encryption, use a small g for encryption efficiency.
-        if useSecureRandom:
-            g = mpz(secureRandom.randrange(4, nSquared))
-        else:
-            g = mpz(random.randrange(4, nSquared))
+        g = mpz(rnd.randrange(4, nSquared))
         if gcd(L(powmod(g, lmbda, nSquared), n), n) == 1:
-            break
+            return g
 
-    publicKey = PaillierScheme1PublicKey(n, nSquared, g)
-    privateKey = PaillierScheme1PrivateKey(n, nSquared, g, lmbda, phiN, p, q)
-    return (publicKey, privateKey)
 
 
 if __name__ == "__main__":
@@ -379,14 +383,29 @@ if __name__ == "__main__":
                 numFound += 1
         print("numFound", numFound)
 
+    def testEncryptDecrypt(pub, prv, mes):
+        print("testEncryptDecrypt mes", mes)
+        enc = pub.encrypt(mes)
+        print("testEncryptDecrypt enc", enc)
+        dec = prv.decrypt(enc)
+        print("testEncryptDecrypt dec", dec)
+        assert mes == dec
+        print("testEncryptDecrypt mes == dec")
+
     def testPaillierKeySize(nBitSize, mes, useSecureRandom=True):
         pub, prv = generateKeysPaillierScheme1(nBitSize=nBitSize, useSecureRandom=useSecureRandom)
         print("generated keys, nBitSize", nBitSize)
         print("n", pub.n)
-        enc = pub.encrypt(mes)
-        dec = prv.decrypt(enc)
-        assert mes == dec
+        testEncryptDecrypt(pub, prv, mes)
         print("testPaillierKeySize passed")
+
+    def testPaillierMessagesTwoPow(pub, prv):
+        print("testPaillierMessagesTwoPow pub.n", pub.n)
+        mes = 4
+        while mes < pub.n:
+            print("testPaillierMessagesTwoPow mes", mes)
+            testEncryptDecrypt(pub, prv, mes)
+            mes <<= 1
 
     def testHomomorphic1AddProdPow(m1, m2, pub, prv):
         enc1 = pub.encrypt(m1 % pub.n)
@@ -408,21 +427,26 @@ if __name__ == "__main__":
         assert decBlinded == mes
         print("test1Blinding passed")
 
-
-    random.seed(65539)
-
-    testProbablePrime()
+    #random.seed(65539)
+    #testProbablePrime()
 
     mes = 301
-    testPaillierKeySize(211, mes)
-    testPaillierKeySize(256, mes)
-    testPaillierKeySize(256, mes, useSecureRandom=False)
-    testPaillierKeySize(512, mes)
-    testPaillierKeySize(1024, mes)
+    #testPaillierKeySize(211, mes)
+    #testPaillierKeySize(256, mes)
+    #testPaillierKeySize(256, mes, useSecureRandom=False)
+    #testPaillierKeySize(512, mes)
+    #testPaillierKeySize(1024, mes)
     #testPaillierKeySize(2048, mes)
     #testPaillierKeySize(4096, mes)
     #testPaillierKeySize(8192, mes)
 
-    pub, prv = generateKeysPaillierScheme1(nBitSize=2048)
-    testHomomorphic1AddProdPow(mes, mes + 987, pub, prv)
-    test1Blinding(mes, pub, prv)
+    #pub, prv = generateKeysPaillierScheme1(nBitSize=2048)
+    #testHomomorphic1AddProdPow(mes, mes + 987, pub, prv)
+    #test1Blinding(mes, pub, prv)
+
+    random.seed(165539)
+    p = 7
+    q = 11
+    n = p * q
+    pub, prv = generatePaillierKeysScheme1FromNPQ(n, p, q, rnd=random)
+    testPaillierMessagesTwoPow(pub, prv)
