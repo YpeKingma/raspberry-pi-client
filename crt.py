@@ -13,11 +13,10 @@
 
 from __future__ import print_function # for python2 development only
 
-"""
-Chinese remainder for constant moduli.
-"""
+""" Chinese remainder for constant moduli. """
 
 from functools import reduce
+from operator import __add__, __mul__
 
 def mult_inv(a, m):
     """ Return b such that (a * b) % m == 1 """
@@ -32,22 +31,16 @@ class CRT(object):
     def __init__(self, moduli):
         self.moduli = moduli
         print("CRT moduli", moduli)
-        self.P = reduce(lambda a, b: a*b, moduli)
-        print("CRT P", self.P)
-        self.invppmds = []
-        for md in self.moduli:
-            print("md", md)
+        self.P = reduce(__mul__, moduli)
+        def invpp(md):
             pp = self.P // md
-            print("pp", pp)
             inv = mult_inv(pp, md)
-            print("inv", inv)
-            self.invppmds.append(inv * pp)
+            return inv * pp
+        self.invpps = map(invpp, moduli)
 
     def remainder(self, remainders):
         assert len(remainders) == len(self.moduli)
-        s = 0
-        for rem, invppmd in zip(remainders, self.invppmds):
-            s += rem * invppmd
+        s = reduce(__add__, [(rem * invpp) for rem, invpp in zip(remainders, self.invpps)])
         print("remainder sum", s)
         res = s % self.P
         print("remainder", res)
