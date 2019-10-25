@@ -18,14 +18,23 @@ from __future__ import print_function # for python2 development only
 from functools import reduce
 from operator import __add__, __mul__
 
-def mult_inv(a, m):
-    """ Return b such that (a * b) % m == 1 """
-    # pow(a, phi(m), m) == 1, for a != 0
-    # so: b = pow(a, phi(m)-1, m)
-    # for the moment assume m is a prime with phi(m) = m - 1
-    b = pow(a, m-2, m)
-    assert (a * b) % m == 1
-    return b
+
+def mult_inv(a, n):
+    """ Return t such that (a * t) % m == 1 """
+    # See also https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
+    t, nt = 0, 1
+    r, nr = n, a
+    while nr != 0:
+        q = r // nr
+        t, nt = nt, t - q * nt
+        r, nr = nr, r - q * nr
+    if r > 1:
+        raise ValueError("multiplicative inverse does not exist")
+    if t < 0:
+        t += n
+    print("mult_inv", a, n, "returning", t)
+    assert (a * t) % n == 1
+    return t
 
 class CRT(object):
     def __init__(self, moduli):
